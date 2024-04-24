@@ -1,0 +1,45 @@
+{
+  "version": 7,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 2 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/install",
+      "toolchainFile": "${sourceDir}/linux-gcc-libstdc++.cmake",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;RelWithDebInfo;Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "OFF",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "default",
+      "configuration": "Debug"
+    },
+    {
+      "name": "relwithdebinfo",
+      "configurePreset": "default",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "release",
+      "configurePreset": "default",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "default",
+      "output": {"outputOnFailure": true},
+      "execution": {"scheduleRandom": true, "stopOnFailure": true}
+    }
+  ]
+}

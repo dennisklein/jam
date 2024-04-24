@@ -1,0 +1,4 @@
+CompileFlags:
+  Remove: [-fmodule*, -fdeps-format*]
+  # Add: [-std=c++23]
+  # CompilationDatabase: build/*/

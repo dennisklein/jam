@@ -1,0 +1,24 @@
+[submodule "third_party/asio"]
+	path = third_party/asio
+	url = https://github.com/FairRootGroup/asio
+[submodule "third_party/Catch2"]
+	path = third_party/Catch2
+	url = https://github.com/catchorg/Catch2
+[submodule "third_party/imtui"]
+	path = third_party/imtui
+	url = https://github.com/ggerganov/imtui
+[submodule "third_party/CLI11"]
+	path = third_party/CLI11
+	url = https://github.com/CLIUtils/CLI11
+[submodule "third_party/tracy"]
+	path = third_party/tracy
+	url = https://github.com/wolfpld/tracy
+[submodule "third_party/mp-units"]
+	path = third_party/mp-units
+	url = https://github.com/mpusz/mp-units
+[submodule "third_party/gsl-lite"]
+	path = third_party/gsl-lite
+	url = https://github.com/gsl-lite/gsl-lite
+[submodule "third_party/simdjson"]
+	path = third_party/simdjson
+	url = https://github.com/simdjson/simdjson
