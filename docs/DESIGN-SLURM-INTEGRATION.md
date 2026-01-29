@@ -198,18 +198,19 @@ fn process_snapshot(&mut self, snapshot: NodeSnapshot) -> CgroupNode {
 
 ### Tree Merging
 
-Shared hierarchy (uid/job/step) shown once; node-specific subtrees merged with NODE attribution:
+Shared hierarchy shown once; node-specific subtrees merged with NODE attribution:
 
 ```
 NODE     NAME                       CPU%   MEM      PIDS
 ─────────────────────────────────────────────────────────
-         uid_1000/                    --     --       --
+         slurmstepd.scope/            --     --       --
          └── job_12345/               --     --       --
              └── step_0/              --     --       --
-node001          ├── task_0/        25.2   4.1G       12
-node001          │   └── python     20.1   3.8G        8
-node002          └── task_0/        28.7   4.3G       12
-node002              └── python     22.3   4.0G        8
+                 └── user/            --     --       --
+node001              ├── task_0/    25.2   4.1G       12
+node001              │   └── python 20.1   3.8G        8
+node002              └── task_0/    28.7   4.3G       12
+node002                  └── python 22.3   4.0G        8
 ```
 
 ## Cgroup Discovery
@@ -233,8 +234,20 @@ fn discover_job_cgroup_root() -> Result<PathBuf> {
 }
 ```
 
-Typical Slurm cgroup layouts:
-- `/sys/fs/cgroup/system.slice/slurmstepd.scope/job_<id>/step_<id>/task_<id>/`
+Typical Slurm cgroup v2 layout (with `IgnoreSystemd=yes`):
+```
+/sys/fs/cgroup/system.slice/slurmstepd.scope/
+├── slurmd/                      # slurmd daemon
+├── system/                      # system processes
+└── job_<id>/                    # per-job cgroup
+    └── step_<id>/               # per-step cgroup
+        ├── slurm/               # slurmstepd processes
+        └── user/                # user processes
+            ├── task_0/          # task 0
+            └── task_special/    # special task
+```
+
+Legacy layouts (older Slurm or cgroup v1):
 - `/sys/fs/cgroup/slurm/uid_<uid>/job_<id>/step_<id>/task_<id>/`
 
 ### Scan Consistency

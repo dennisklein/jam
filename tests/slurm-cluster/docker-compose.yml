@@ -1,0 +1,70 @@
+services:
+  slurmctld:
+    image: jam-slurm-node
+    hostname: slurmctld
+    container_name: slurmctld
+    security_opt:
+      - writable-cgroups=true
+      - label=disable
+    volumes:
+      - shared-data:/data:z
+      - ./etc/slurm:/etc/slurm:ro,z
+    networks:
+      - slurm-net
+    command: ["/usr/sbin/slurmctld", "-D", "-vv"]
+    healthcheck:
+      test: ["CMD", "scontrol", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  c1:
+    image: jam-slurm-node
+    hostname: c1
+    container_name: c1
+    security_opt:
+      - writable-cgroups=true
+      - label=disable
+    volumes:
+      - shared-data:/data:z
+      - ./etc/slurm:/etc/slurm:ro,z
+    networks:
+      - slurm-net
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+    command: ["/usr/sbin/slurmd", "-D", "-vv"]
+    healthcheck:
+      test: ["CMD", "pidof", "slurmd"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  c2:
+    image: jam-slurm-node
+    hostname: c2
+    container_name: c2
+    security_opt:
+      - writable-cgroups=true
+      - label=disable
+    volumes:
+      - shared-data:/data:z
+      - ./etc/slurm:/etc/slurm:ro,z
+    networks:
+      - slurm-net
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+    command: ["/usr/sbin/slurmd", "-D", "-vv"]
+    healthcheck:
+      test: ["CMD", "pidof", "slurmd"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  slurm-net:
+
+volumes:
+  shared-data:
