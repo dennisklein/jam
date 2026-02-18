@@ -191,6 +191,20 @@ make test-jam  # Run the integration test suite
 make down      # Stop the cluster
 ```
 
+### Interactive testing
+
+After `deploy`:
+
+```bash
+❯ make shell
+docker compose exec slurmctld bash
+[root@slurmctld data]# squeue
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+[root@slurmctld data]# sbatch -N2 --wrap="srun stress-ng --cpu 1 --cpu-load 50 --timeout 180s"
+Submitted batch job 1
+[root@slurmctld data]# jam --jobid 1
+```
+
 ## License
 
 This project is licensed under the GNU Lesser General Public License v3.0 or later - see the [LICENSE](LICENSE) file for details.
