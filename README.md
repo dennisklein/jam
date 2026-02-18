@@ -18,7 +18,7 @@ A terminal-based tool for visualizing and monitoring cgroup v2 resource hierarch
 - Linux with cgroup v2 enabled
 - Rust 1.70+ (for building)
 - Read access to `/sys/fs/cgroup` and `/proc`
-- For Slurm mode: SSH access to compute nodes, `scontrol` on the coordinator
+- For Slurm mode: `srun` and `scontrol` available, active job allocation
 
 ## Installation
 
@@ -59,7 +59,7 @@ jam --jobid 12345
 jam --jobid 12345 --jam-binary /opt/jam/bin/jam
 ```
 
-The coordinator spawns collector processes on each allocated node via SSH. Collectors discover the job's cgroup hierarchy and stream metric snapshots back to the coordinator, which aggregates and renders them in a unified TUI.
+The coordinator uses `srun --overlap` to attach collector processes to the existing job allocation on each node. Since the collectors run within the job's cgroup namespace, they automatically discover and monitor the correct cgroup hierarchy. Collectors stream NDJSON metric snapshots back to the coordinator via stdout, which aggregates and renders them in a unified TUI.
 
 ### Command-Line Options
 
@@ -123,18 +123,23 @@ src/
 ### Slurm Coordinator/Collector Pattern
 
 ```
-┌────────────────┐         SSH + jam --collector
+┌────────────────┐  srun --jobid=N --overlap --nodelist=c1
 │  Coordinator   │──────────────────────────────►┌──────────┐
-│  (jam --jobid) │          NDJSON snapshots      │ node c1  │
+│  (jam --jobid) │        NDJSON via stdout       │ node c1  │
 │                │◄──────────────────────────────┤ collector │
 │  Aggregates    │                                └──────────┘
-│  metrics from  │         SSH + jam --collector
+│  metrics from  │  srun --jobid=N --overlap --nodelist=c2
 │  all nodes     │──────────────────────────────►┌──────────┐
-│                │          NDJSON snapshots      │ node c2  │
+│                │        NDJSON via stdout       │ node c2  │
 │  Renders       │◄──────────────────────────────┤ collector │
 │  unified TUI   │                                └──────────┘
 └────────────────┘
 ```
+
+The `--overlap` flag allows the collector to attach to a running job allocation
+without consuming additional resources. Because the collector runs inside the
+job's cgroup namespace via `srun`, it discovers the correct cgroup tree
+automatically through `/proc/self/cgroup`.
 
 Each collector:
 1. Discovers the job's cgroup via `/proc/self/cgroup`
@@ -142,20 +147,27 @@ Each collector:
 3. Streams timestamped NDJSON snapshots to stdout
 
 The coordinator:
-1. Queries `scontrol` for allocated nodes
-2. Spawns collectors via `ssh <node> jam --collector`
+1. Queries `scontrol` for allocated nodes and job state
+2. Spawns collectors via `srun --jobid=<id> --overlap --nodelist=<node> jam --collector`
 3. Computes CPU% and I/O rates from consecutive snapshots
 4. Merges per-node trees into a single display
 
 ## How It Works
 
+### Local Mode
+
 1. **Data Collection**: Recursively reads `/sys/fs/cgroup` to build the cgroup hierarchy, parsing controller files (`cpu.stat`, `memory.current`, `io.stat`, `pids.current`)
-
 2. **Process Mapping**: For each cgroup, reads process information from `/proc/[pid]/` including CPU times, memory, and I/O statistics
-
 3. **Rate Calculation**: Computes CPU% and I/O rates by comparing current values with previous samples. Timestamps are captured before metric parsing to ensure accurate elapsed time computation. First-sample rates show `-` (pending) until a baseline is established.
-
 4. **Tree Rendering**: Flattens the hierarchical structure into a scrollable list with tree-drawing characters for visualization
+
+### Slurm Mode
+
+1. **Job Discovery**: The coordinator queries `scontrol show job <id>` to get the list of allocated nodes and job state
+2. **Collector Attachment**: For each node, the coordinator runs `srun --jobid=<id> --overlap --nodelist=<node> jam --collector`. The `--jobid` and `--overlap` flags attach to the existing allocation without consuming job resources. Because the collector process lands inside the job's cgroup namespace, it reads `/proc/self/cgroup` to find the job-level cgroup root automatically.
+3. **Streaming**: Each collector periodically reads raw cumulative counters and writes NDJSON snapshots to stdout, which the coordinator reads asynchronously via tokio
+4. **Rate Computation**: The coordinator compares consecutive snapshots per node to compute instantaneous CPU% and I/O rates
+5. **Rendering**: Per-node cgroup trees are merged into a unified view, rendered at 30 FPS
 
 ## Dependencies
 
