@@ -52,13 +52,8 @@ pub struct NodeSnapshot {
 }
 
 impl NodeSnapshot {
-    /// Create a new snapshot with current timestamp and collector PID
-    pub fn new(node: String, cgroup_tree: CgroupNodeRaw, collector_pid: u32) -> Self {
-        Self::with_timestamp(node, cgroup_tree, collector_pid, Self::now())
-    }
-
     /// Create a new snapshot with a pre-captured timestamp.
-    /// Use this when the timestamp should reflect when metrics were sampled,
+    /// The timestamp should reflect when metrics were sampled,
     /// not when the snapshot was constructed.
     pub fn with_timestamp(
         node: String,
@@ -211,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_node_snapshot_serialization() {
-        let snapshot = NodeSnapshot::new(
+        let snapshot = NodeSnapshot::with_timestamp(
             "node001".to_string(),
             CgroupNodeRaw {
                 path: PathBuf::from("/sys/fs/cgroup/system.slice/job_123"),
@@ -242,6 +237,7 @@ mod tests {
                 io_write_bytes: Some(512 * 1024),
             },
             9999, // collector_pid
+            NodeSnapshot::now(),
         );
 
         // Serialize to JSON
@@ -262,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_final_reason() {
-        let snapshot = NodeSnapshot::new("node001".to_string(), CgroupNodeRaw::default(), 1234)
+        let snapshot = NodeSnapshot::with_timestamp("node001".to_string(), CgroupNodeRaw::default(), 1234, NodeSnapshot::now())
             .with_final_reason("completed");
 
         let json = serde_json::to_string(&snapshot).unwrap();
