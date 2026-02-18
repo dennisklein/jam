@@ -37,7 +37,8 @@ clean:
 
 deploy:
 	@echo "Copying source to container..."
-	@docker exec slurmctld find /data/jam-src -mindepth 1 -maxdepth 1 ! -name target -exec rm -rf {} + 2>/dev/null || true
+	@docker exec slurmctld mkdir -p /data/jam-src
+	@docker exec slurmctld find /data/jam-src -mindepth 1 -maxdepth 1 ! -name target -exec rm -rf {} +
 	@docker cp $(JAM_SRC)/src slurmctld:/data/jam-src/
 	@docker cp $(JAM_SRC)/Cargo.toml slurmctld:/data/jam-src/
 	@docker cp $(JAM_SRC)/Cargo.lock slurmctld:/data/jam-src/
