@@ -4,4 +4,4 @@
 pub mod parser;
 pub mod types;
 
-pub use types::ProcessState;
+pub use types::{Process, ProcessState};

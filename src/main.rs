@@ -16,6 +16,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 mod app;
 mod cgroup;
 mod process;
+mod slurm;
 mod ui;
 
 use app::App;
@@ -29,11 +30,37 @@ struct Args {
     /// Refresh interval in milliseconds
     #[arg(short, long, default_value = "1000")]
     refresh: u64,
+
+    /// Slurm job ID to monitor across all allocated nodes
+    #[arg(long)]
+    jobid: Option<u32>,
+
+    /// Path to jam binary on worker nodes (for --jobid mode)
+    #[arg(long, default_value = "jam")]
+    jam_binary: String,
+
+    /// Run in collector mode (internal, used by coordinator)
+    #[arg(long, hide = true)]
+    collector: bool,
+
+    /// Node name (internal, passed by coordinator)
+    #[arg(long, hide = true)]
+    node_name: Option<String>,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    run_tui(args)
+
+    if args.collector {
+        // Collector mode: output NDJSON metrics to stdout
+        slurm::run_collector_mode(args.node_name, args.refresh, None)
+    } else if let Some(jobid) = args.jobid {
+        // Coordinator mode: spawn collectors and aggregate metrics
+        slurm::run_coordinator_mode(jobid, &args.jam_binary, args.refresh)
+    } else {
+        // Local mode: monitor local cgroup tree
+        run_tui(args)
+    }
 }
 
 fn run_tui(args: Args) -> Result<()> {

@@ -53,8 +53,13 @@ pub struct Process {
     pub pid: u32,
     /// Parent process ID
     pub ppid: u32,
-    /// Process name (comm)
+    /// Process start time (field 22 from /proc/[pid]/stat, in clock ticks since boot)
+    /// Used together with PID to uniquely identify a process instance (PID reuse detection)
+    pub starttime: u64,
+    /// Process name (comm or basename of cmdline)
     pub name: String,
+    /// Full command line (from /proc/[pid]/cmdline)
+    pub cmdline: Option<String>,
     /// Username of the process owner
     pub user: String,
     /// Process state

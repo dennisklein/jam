@@ -76,6 +76,7 @@ impl SortDirection {
 #[derive(Debug, Clone)]
 pub struct FlatCgroup {
     pub name: String,
+    pub node: Option<String>,
     pub cpu_percent: f32,
     pub memory_current: Option<u64>,
     pub pids_current: Option<u32>,
@@ -88,6 +89,8 @@ pub struct FlatCgroup {
 pub struct FlatProcess {
     pub pid: u32,
     pub name: String,
+    pub cmdline: Option<String>,
+    pub node: Option<String>,
     pub user: String,
     pub state: crate::process::ProcessState,
     pub cpu_percent: f32,
@@ -468,6 +471,7 @@ fn flatten_cgroup_node(
     };
     let data = FlatCgroup {
         name,
+        node: None, // Local mode - no node attribution
         cpu_percent: node.metrics.cpu_percent,
         memory_current: node.metrics.memory_current,
         pids_current: node.metrics.pids_current,
@@ -577,6 +581,8 @@ fn flatten_process_ref(
     let data = FlatProcess {
         pid: proc.pid,
         name: proc.name.clone(),
+        cmdline: proc.cmdline.clone(),
+        node: None, // Local mode - no node attribution
         user: proc.user.clone(),
         state: proc.state,
         cpu_percent: proc.cpu_percent,

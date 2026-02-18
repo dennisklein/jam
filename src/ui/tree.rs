@@ -223,7 +223,7 @@ fn render_tree_row(item: &TreeItem, selected: bool, _name_width: usize) -> Row<'
                 .unwrap_or_default();
 
             // CPU%
-            let cpu_str = format!("{:.1}", data.cpu_percent);
+            let cpu_str = format_cpu(data.cpu_percent);
 
             // I/O rates
             let io_r_str = format_rate(data.io_read_rate);
@@ -292,7 +292,7 @@ fn render_tree_row(item: &TreeItem, selected: bool, _name_width: usize) -> Row<'
             };
 
             // CPU%
-            let cpu_str = format!("{:.1}", data.cpu_percent);
+            let cpu_str = format_cpu(data.cpu_percent);
 
             // Memory (RSS)
             let mem_str = format_bytes(data.rss);
@@ -340,14 +340,23 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
+/// Format CPU percentage, showing "-" for pending (NAN) values
+fn format_cpu(cpu_percent: f32) -> String {
+    if cpu_percent.is_nan() {
+        "-".to_string() // No baseline yet (first sample)
+    } else {
+        format!("{:.1}", cpu_percent)
+    }
+}
+
 /// Format I/O rate (bytes/sec) with human-readable suffix
 fn format_rate(rate: f32) -> String {
     const KIB: f32 = 1024.0;
     const MIB: f32 = KIB * 1024.0;
     const GIB: f32 = MIB * 1024.0;
 
-    if rate < 0.1 {
-        "-".to_string()  // Show dash for near-zero rates
+    if rate.is_nan() || rate < 0.1 {
+        "-".to_string()  // Show dash for pending or near-zero rates
     } else if rate >= GIB {
         format!("{:.1}Gi", rate / GIB)
     } else if rate >= MIB {

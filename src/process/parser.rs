@@ -45,11 +45,13 @@ fn parse_process(pid: u32) -> Option<Process> {
     let stat_content = fs::read_to_string(format!("{}/stat", proc_path)).ok()?;
     let stat = parse_proc_stat(&stat_content)?;
 
-    // Read cmdline for process name (optional)
-    let name = fs::read_to_string(format!("{}/cmdline", proc_path))
-        .ok()
-        .and_then(|content| parse_cmdline_name(&content))
+    // Read cmdline for process name and full command line (optional)
+    let cmdline_content = fs::read_to_string(format!("{}/cmdline", proc_path)).ok();
+    let name = cmdline_content
+        .as_ref()
+        .and_then(|content| parse_cmdline_name(content))
         .unwrap_or_else(|| stat.comm.clone());
+    let cmdline = cmdline_content.and_then(|content| parse_full_cmdline(&content));
 
     // Read status for UID (optional)
     let uid = fs::read_to_string(format!("{}/status", proc_path))
@@ -69,7 +71,9 @@ fn parse_process(pid: u32) -> Option<Process> {
     Some(Process {
         pid,
         ppid: stat.ppid,
+        starttime: stat.starttime,
         name,
+        cmdline,
         user,
         state: ProcessState::from(stat.state),
         utime: stat.utime,
@@ -77,11 +81,13 @@ fn parse_process(pid: u32) -> Option<Process> {
         rss: stat.rss * page_size,
         vsize: stat.vsize,
         num_threads: stat.num_threads,
-        cpu_percent: 0.0,
+        // Use NAN for rates to indicate "no baseline yet" (first sample)
+        // This allows UI to distinguish "pending" from "actually zero"
+        cpu_percent: f32::NAN,
         io_read_bytes,
         io_write_bytes,
-        io_read_rate: 0.0,
-        io_write_rate: 0.0,
+        io_read_rate: f32::NAN,
+        io_write_rate: f32::NAN,
     })
 }
 
@@ -94,6 +100,7 @@ struct ProcStat {
     vsize: u64,
     rss: u64,
     num_threads: u32,
+    starttime: u64,
 }
 
 fn parse_proc_stat(content: &str) -> Option<ProcStat> {
@@ -119,6 +126,7 @@ fn parse_proc_stat(content: &str) -> Option<ProcStat> {
         vsize: fields[20].parse().ok()?,
         rss: fields[21].parse().ok()?,
         num_threads: fields[17].parse().ok()?,
+        starttime: fields[19].parse().ok()?,  // Field 22 in stat (0-indexed 19 after comm)
     })
 }
 
@@ -131,6 +139,14 @@ fn parse_cmdline_name(cmdline: &str) -> Option<String> {
         .file_name()?
         .to_str()?;
     Some(name.to_string())
+}
+
+fn parse_full_cmdline(cmdline: &str) -> Option<String> {
+    let args: Vec<&str> = cmdline.split('\0').filter(|s| !s.is_empty()).collect();
+    if args.is_empty() {
+        return None;
+    }
+    Some(args.join(" "))
 }
 
 fn parse_uid_from_status(content: &str) -> Option<u32> {

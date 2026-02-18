@@ -19,7 +19,15 @@ RUN dnf -y install \
         procps-ng \
         iproute \
         hostname \
+        stress-ng \
     && dnf clean all
+
+# Install tools for building jam inside container (separate step for --allowerasing)
+RUN dnf -y --allowerasing install gcc curl && dnf clean all
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Create users via systemd-sysusers (munge) and manually (slurm)
 RUN systemd-sysusers && \

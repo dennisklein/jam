@@ -5,4 +5,4 @@ pub mod parser;
 pub mod types;
 
 pub use parser::parse_cgroup_tree;
-pub use types::CgroupNode;
+pub use types::{CgroupNode, CgroupMetrics};

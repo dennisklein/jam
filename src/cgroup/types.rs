@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::process::types::Process;
 
 /// Metrics from cgroup controllers
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CgroupMetrics {
     /// Memory current usage in bytes (from memory.current)
     pub memory_current: Option<u64>,
@@ -18,16 +18,34 @@ pub struct CgroupMetrics {
     pub cpu_usage_usec: Option<u64>,
     /// Number of processes (from pids.current)
     pub pids_current: Option<u32>,
-    /// CPU percentage (calculated between samples)
+    /// CPU percentage (calculated between samples, NAN if no baseline yet)
     pub cpu_percent: f32,
     /// Block I/O read bytes (from io.stat)
     pub io_read_bytes: Option<u64>,
     /// Block I/O write bytes (from io.stat)
     pub io_write_bytes: Option<u64>,
-    /// Block I/O read rate in bytes/sec (calculated between samples)
+    /// Block I/O read rate in bytes/sec (calculated between samples, NAN if no baseline)
     pub io_read_rate: f32,
-    /// Block I/O write rate in bytes/sec (calculated between samples)
+    /// Block I/O write rate in bytes/sec (calculated between samples, NAN if no baseline)
     pub io_write_rate: f32,
+}
+
+impl Default for CgroupMetrics {
+    fn default() -> Self {
+        Self {
+            memory_current: None,
+            memory_max: None,
+            cpu_usage_usec: None,
+            pids_current: None,
+            // Use NAN for rates to indicate "no baseline yet" (first sample)
+            // This allows UI to distinguish "pending" from "actually zero"
+            cpu_percent: f32::NAN,
+            io_read_bytes: None,
+            io_write_bytes: None,
+            io_read_rate: f32::NAN,
+            io_write_rate: f32::NAN,
+        }
+    }
 }
 
 /// A node in the cgroup hierarchy
