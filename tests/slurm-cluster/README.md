@@ -57,6 +57,12 @@ make status
 # Run a test job
 make test
 
+# Build jam and install to all containers
+make deploy
+
+# Run jam integration tests
+make test-jam
+
 # Get a shell on the controller
 make shell
 
@@ -291,15 +297,36 @@ docker compose exec c1 cat /sys/fs/cgroup/system.slice/slurmstepd.scope/job_1/st
 
 ## Testing jam
 
-Once the cluster is running, you can test jam's Slurm integration:
+### Deploy jam to the cluster
+
+The `deploy` target builds jam inside the container (to match glibc) and installs it to all nodes:
 
 ```bash
-# From the slurmctld container, run jam with a job ID
-docker compose exec slurmctld jam --jobid <JOB_ID>
+make deploy    # Build + install jam to slurmctld, c1, c2
+```
 
-# Or mount the jam binary into the container (add to docker-compose.yml):
-# volumes:
-#   - ../../target/release/jam:/usr/local/bin/jam:ro
+### Run the integration test suite
+
+An automated test suite (`test-jam.sh`) validates collector mode, NDJSON output, cgroup discovery, and multi-node operation:
+
+```bash
+make test-jam  # Runs all integration tests
+```
+
+The test suite:
+1. Builds jam inside the container
+2. Installs it to all nodes
+3. Runs 8 tests covering local mode, collector NDJSON output, cgroup discovery, process information, protocol version, scontrol parsing, nodelist expansion, and multi-node collectors
+
+### Manual testing
+
+```bash
+# Get a shell on the controller
+make shell
+
+# Submit a job and monitor it
+sbatch --wrap="stress-ng --cpu 2 --timeout 60" -N2
+jam --jobid <JOB_ID>
 ```
 
 ## Troubleshooting
@@ -388,8 +415,9 @@ The GSI repository provides multiple Slurm versions. To use a different version,
 ```
 tests/slurm-cluster/
 ├── docker-compose.yml    # Container orchestration
-├── Dockerfile            # Image build (Rocky 9 + Slurm)
-├── Makefile              # Convenience commands
+├── Dockerfile            # Image build (Rocky 9 + Slurm + Rust)
+├── Makefile              # Convenience commands (up, deploy, test-jam, ...)
+├── test-jam.sh           # Integration test suite
 ├── README.md             # This file
 ├── etc/
 │   └── slurm/
