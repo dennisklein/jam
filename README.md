@@ -1,3 +1,5 @@
+> ⚠️ **CAUTION: Vibe-coded proof-of-concept! Use at your own risk and for inspiration only!**
+
 # JAM - Job Analysis and Monitoring
 
 A terminal-based tool for visualizing and monitoring cgroup v2 resource hierarchies and process trees on Linux systems, with native Slurm multi-node support.
